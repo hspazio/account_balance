@@ -4,37 +4,18 @@ defmodule AccountBalance do
   """
 
   def start(initial_value) do
-    {:ok, spawn(AccountBalance, :loop, [initial_value])}
-  end
-
-  def loop(balance) do
-    receive do
-      {from, ref, :get_balance} ->
-        send(from, {:ok, ref, balance})
-        loop(balance)
-      {:lodge, amount} ->
-        loop(balance + amount)
-      {:withdraw, amount} ->
-        loop(balance - amount)
-    end
+    Agent.start(fn -> initial_value end)
   end
 
   def get_balance(pid) do
-    ref = make_ref()
-    send(pid, {self(), ref, :get_balance})
-
-    receive do
-      {:ok, ^ref, balance} -> {:ok, balance}
-    end
+    Agent.get(pid, fn(value) -> {:ok, value} end)
   end
 
   def lodge(pid, amount) do
-    send(pid, {:lodge, amount})
-    :ok
+    Agent.update(pid, fn(value) -> value + amount end)
   end
 
   def withdraw(pid, amount) do
-    send(pid, {:withdraw, amount})
-    :ok
+    Agent.update(pid, fn(value) -> value - amount end)
   end
 end
